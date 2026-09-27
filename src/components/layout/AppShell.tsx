@@ -7,7 +7,10 @@
  */
 
 import type { ReactNode } from 'react'
-import { Link, Outlet } from 'react-router-dom'
+import { Link, Outlet, useNavigate } from 'react-router-dom'
+
+import { logout } from '../../api/auth'
+import { useAuth } from '../../auth/AuthContext'
 
 const NAV_LINKS = [
     { to: '/', label: 'Dashboard' },
@@ -17,6 +20,18 @@ const NAV_LINKS = [
 ]
 
 export function AppShell({ children }: { children?: ReactNode }) {
+    const navigate = useNavigate()
+    const { user, setSession } = useAuth()
+
+    const handleLogout = async () => {
+        try {
+            await logout()
+        } finally {
+            setSession(null, null)
+            navigate('/login')
+        }
+    }
+
     return (
         <div className="flex min-h-screen">
             <aside className="w-56 shrink-0 border-r border-gray-200 p-4">
@@ -30,8 +45,17 @@ export function AppShell({ children }: { children?: ReactNode }) {
                 </nav>
             </aside>
             <div className="flex flex-1 flex-col">
-                <header className="border-b border-gray-200 p-4">
-                    <span className="text-sm text-gray-500">RicozPortfolio Frontend — Phase 1 scaffold</span>
+                <header className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                    <span className="text-sm text-gray-500">
+                        {user ? `${user.name} (${user.email})` : 'RicozPortfolio Frontend'}
+                    </span>
+                    <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-xs hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    >
+                        Sign out
+                    </button>
                 </header>
                 <main className="flex-1 p-6">{children ?? <Outlet />}</main>
             </div>

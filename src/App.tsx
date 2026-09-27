@@ -7,28 +7,36 @@
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 
-import { AuthProvider } from './auth/AuthContext'
+import { AuthProvider, useAuth } from './auth/AuthContext'
 import { bootstrapAuth } from './auth/bootstrapAuth'
 import { AppRoutes } from './routes'
 
 const queryClient = new QueryClient()
 
-function App() {
-  useEffect(() => {
-    void bootstrapAuth()
-  }, [])
+function AppBootstrap({ children }: { children: ReactNode }) {
+  const { setSession, setIsLoading } = useAuth()
 
+  useEffect(() => {
+    void bootstrapAuth({ setSession, setIsLoading })
+  }, [setSession, setIsLoading])
+
+  return <>{children}</>
+}
+
+function App() {
   return (
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <AppBootstrap>
           <BrowserRouter>
             <AppRoutes />
           </BrowserRouter>
-        </AuthProvider>
-      </QueryClientProvider>
+        </AppBootstrap>
+      </AuthProvider>
+    </QueryClientProvider>
   )
 }
 

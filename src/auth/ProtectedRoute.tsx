@@ -2,13 +2,15 @@
  * Route guard that requires an authenticated session, and optionally a
  * specific set of roles.
  *
- * Phase 1 scope only: since there is no real authentication yet, this
- * always renders its children so the route tree can be exercised during
- * Foundation work. The Auth phase wires isAuthenticated up to a real
- * session, and the RBAC phase wires the roles check up to real enforcement.
+ * Auth phase implementation:
+ *  - While isLoading (bootstrapping silent-refresh), shows a loading spinner
+ *    to prevent premature redirect-to-login flash.
+ *  - If !isAuthenticated and !isLoading, redirects to /login.
+ *  - If roles are specified, verifies user role membership.
  */
 
 import type { ReactNode } from 'react'
+import { Navigate } from 'react-router-dom'
 
 import { useAuth, type Role } from './AuthContext'
 
@@ -18,13 +20,21 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
-    const { isAuthenticated, user } = useAuth()
+    const { isAuthenticated, isLoading, user } = useAuth()
 
-    // Phase 1: no redirect-to-login exists yet (no login page has real logic
-    // yet either). This check is a documented placeholder, not a security
-    // boundary — see RBAC phase in implementation-plan.md.
+    if (isLoading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <div className="flex flex-col items-center gap-2">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-indigo-600" />
+                    <p className="text-sm text-gray-500">Loading session...</p>
+                </div>
+            </div>
+        )
+    }
+
     if (!isAuthenticated) {
-        return children
+        return <Navigate to="/login" replace />
     }
 
     if (roles && roles.length > 0 && user) {
