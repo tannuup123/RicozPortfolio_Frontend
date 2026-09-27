@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+/*
+ * Phase 1 scaffold: Tailwind's base/components/utilities layers only.
+ * No design tokens or theming decisions are made yet — those belong to
+ * the frontend-design work done alongside actual feature pages.
+ */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
