@@ -17,6 +17,7 @@ const NAV_LINKS = [
     { to: '/strategy/goals', label: 'Strategy' },
     { to: '/demand/ideas', label: 'Demand' },
     { to: '/portfolios', label: 'Portfolios' },
+    { to: '/users', label: 'Users' },
 ]
 
 export function AppShell({ children }: { children?: ReactNode }) {

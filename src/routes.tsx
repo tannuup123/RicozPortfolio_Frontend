@@ -19,6 +19,7 @@ import { PortfolioDetailPage } from './features/portfolios/PortfolioDetailPage'
 import { PortfolioListPage } from './features/portfolios/PortfolioListPage'
 import { ProjectDetailPage } from './features/projects/ProjectDetailPage'
 import { GoalsPage } from './features/strategy/GoalsPage'
+import { UsersListPage } from './features/users/UsersListPage'
 
 export function AppRoutes() {
     return (
@@ -40,6 +41,7 @@ export function AppRoutes() {
                 <Route path="/portfolios" element={<PortfolioListPage />} />
                 <Route path="/portfolios/:portfolioId" element={<PortfolioDetailPage />} />
                 <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
+                <Route path="/users" element={<UsersListPage />} />
             </Route>
         </Routes>
     )

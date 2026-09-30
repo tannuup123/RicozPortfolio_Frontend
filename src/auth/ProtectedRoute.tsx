@@ -12,11 +12,12 @@
 import type { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
 
-import { useAuth, type Role } from './AuthContext'
+import { useAuth } from './AuthContext'
+import { RoleName } from '../api/users'
 
 interface ProtectedRouteProps {
     children: ReactNode
-    roles?: Role[]
+    roles?: RoleName[]
 }
 
 export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {

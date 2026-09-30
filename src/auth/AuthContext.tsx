@@ -17,15 +17,14 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 
 import { setAccessToken } from '../api/client'
-
-export type Role = 'org_admin' | 'portfolio_manager' | 'project_manager' | 'team_member'
+import { RoleName } from '../api/users'
 
 export interface AuthUser {
     id: string
     email: string
     name: string
     organization_id: string
-    roles: Role[]
+    roles: RoleName[]
 }
 
 interface AuthContextValue {
