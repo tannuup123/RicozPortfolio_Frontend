@@ -36,8 +36,11 @@ export function AppRoutes() {
             >
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/strategy/goals" element={<GoalsPage />} />
+                <Route path="/goals" element={<GoalsPage />} />
                 <Route path="/demand/ideas" element={<IdeasListPage />} />
+                <Route path="/ideas" element={<IdeasListPage />} />
                 <Route path="/demand/ideas/:ideaId" element={<IdeaDetailPage />} />
+                <Route path="/ideas/:ideaId" element={<IdeaDetailPage />} />
                 <Route path="/portfolios" element={<PortfolioListPage />} />
                 <Route path="/portfolios/:portfolioId" element={<PortfolioDetailPage />} />
                 <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
