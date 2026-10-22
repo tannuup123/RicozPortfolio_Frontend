@@ -27,7 +27,7 @@ Railway / Render (Backend)       RicozPortfolio-Backend repo
 
 **Two independent repositories `[DECIDED]`:**
 - `RicozPortfolio-Backend` — FastAPI, SQLAlchemy 2.0, PostgreSQL, Alembic, Pydantic v2, JWT, Redis, Celery (scaffolded, unused), Pytest.
-- `RicozPortfolio-Frontend` — React, TypeScript, Vite, Tailwind CSS.
+- `RicozPortfolio-Frontend` — React, TypeScript, Vite, Tailwind CSS (current baseline; migrating to Next.js App Router as target frontend architecture).
 
 Each is independently version-controlled, tested, built, and deployed. Docker Compose is kept in both for local development and as a portability path to any host beyond the chosen PaaS. `[DECIDED]`
 
@@ -91,6 +91,8 @@ RicozPortfolio-Backend/
 ```
 
 ### `RicozPortfolio-Frontend`
+
+**Current Baseline (React + Vite):**
 ```
 RicozPortfolio-Frontend/
 ├── src/
@@ -104,7 +106,8 @@ RicozPortfolio-Frontend/
 │   │   ├── strategy/
 │   │   ├── demand/
 │   │   ├── portfolios/
-│   │   └── projects/
+│   │   ├── projects/
+│   │   └── users/
 │   ├── routes.tsx
 │   └── main.tsx
 ├── Dockerfile
@@ -117,6 +120,57 @@ RicozPortfolio-Frontend/
 │   ├── mvp-requirements.md
 │   └── implementation-plan.md
 └── README.md
+```
+
+**Target Architecture (Next.js App Router — Planned Migration):**
+```
+RicozPortfolio-Frontend/
+├── src/                      # (or root app/)
+│   ├── app/
+│   │   ├── (auth)/           # Route group for unauthenticated flows
+│   │   │   ├── login/
+│   │   │   │   └── page.tsx
+│   │   │   └── register/
+│   │   │       └── page.tsx
+│   │   ├── (dashboard)/      # Route group for authenticated protected layout
+│   │   │   ├── layout.tsx    # AppShell + Auth guard
+│   │   │   ├── page.tsx      # Dashboard (org home)
+│   │   │   ├── strategy/
+│   │   │   │   └── goals/
+│   │   │   │       └── page.tsx
+│   │   │   ├── goals/        # Route alias / redirect to strategy/goals
+│   │   │   │   └── page.tsx
+│   │   │   ├── demand/
+│   │   │   │   └── ideas/
+│   │   │   │       ├── page.tsx
+│   │   │   │       └── [ideaId]/
+│   │   │   │           └── page.tsx
+│   │   │   ├── ideas/        # Route alias / redirect to demand/ideas
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── [ideaId]/
+│   │   │   │       └── page.tsx
+│   │   │   ├── portfolios/
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── [portfolioId]/
+│   │   │   │       └── page.tsx
+│   │   │   ├── projects/
+│   │   │   │   └── [projectId]/
+│   │   │   │       └── page.tsx
+│   │   │   └── users/
+│   │   │       └── page.tsx
+│   │   ├── layout.tsx        # Root layout (QueryClientProvider, AuthProvider)
+│   │   └── providers.tsx     # Client-side providers wrapper
+│   ├── api/                  # typed API client modules (direct FastAPI communication)
+│   ├── auth/                 # AuthContext, bootstrapAuth, useAuth
+│   ├── components/
+│   │   ├── ui/               # shared reusable UI components
+│   │   └── layout/           # AppShell, Topbar, Sidebar
+│   └── features/             # feature-specific components and modals
+├── next.config.ts (or .js)
+├── Dockerfile                # updated for Next.js standalone/runner build post-migration
+├── .env.example              # NEXT_PUBLIC_API_URL
+├── .github/workflows/ci.yml
+└── Doc/
 ```
 
 `[DECIDED]` No shared monorepo tooling. The only contract between repos is the API surface (Section 6). Place this same set of three docs in both repos' `Doc/` folder so an AI coding agent working in either repo has full context without needing the other repo open.
@@ -157,22 +211,41 @@ HTTP request
 
 ## 4. Frontend Architecture
 
-- **State management `[PROPOSED]`:** React Query for server state/caching; local component state/Context for UI state. No Redux.
-- **API client (`src/api/client.ts`):** `fetch` wrapper, always `credentials: 'include'` (required for the cookie-based refresh flow, Section 5), attaches `Authorization: Bearer <access_token>` from in-memory state, single-retry-after-refresh on 401.
-- **Auth (`src/auth/`):** access token held in memory only (React state/ref) — never `localStorage`/`sessionStorage`. `bootstrapAuth.ts` silently calls refresh on app load to re-establish session from the httpOnly cookie.
-- **Forms:** `react-hook-form` + `zod`, schemas mirroring backend Pydantic validation.
-- **Routing/protection:** `react-router-dom`; `<ProtectedRoute roles={[...]}>` reads `AuthContext`.
-- **Error/loading states:** React Query's `isLoading`/`isError`, surfaced via shared `<LoadingState/>` / `<ErrorState/>`.
+### 4.1 Architecture Baseline vs Target Overview
+- **Current Baseline:** React + Vite + React Router SPA (`src/routes.tsx`, `src/main.tsx`, `src/App.tsx`).
+- **Target Architecture `[DECIDED for migration]`:** Next.js App Router (`src/app/` or `app/`), React 19 / TypeScript, with direct FastAPI communication, client-rendered authenticated views, and preserved in-memory auth tokens. Potential performance and SEO improvements are targets to validate rather than assumed automatic outcomes.
 
-**Page hierarchy:**
+### 4.2 State, API, and Form Patterns
+- **State management `[DECIDED]`:** TanStack Query (`@tanstack/react-query`) for server state/caching; local component state/React Context for UI state. No Redux.
+- **API client (`src/api/client.ts`):** `fetch` wrapper communicating directly with the FastAPI backend, always `credentials: 'include'` (required for the cookie-based refresh flow, Section 5), attaches `Authorization: Bearer <access_token>` from in-memory state, single-retry-after-refresh on 401. No Next.js API route proxying or SSR token handling is introduced for this migration.
+- **Auth (`src/auth/`):** Access token held in memory only (React state/ref) — never written to `localStorage` or `sessionStorage`. `bootstrapAuth.ts` silently calls refresh on initial application load to re-establish session from the httpOnly cookie.
+- **Forms:** `react-hook-form` + `zod`, schemas mirroring backend Pydantic validation.
+- **Error/loading states:** TanStack Query's `isLoading`/`isError`, surfaced via shared UI state components.
+
+### 4.3 Routing and Protected Layout Architecture
+- **Current (React Router):** `react-router-dom`; `<ProtectedRoute roles={[...]}>` reads `AuthContext` in `src/routes.tsx`.
+- **Target (Next.js App Router):**
+  - **Route Groups:**
+    - `app/(auth)/`: Unauthenticated routes (`/login`, `/register`). Client components handling credential entry and session establishment.
+    - `app/(dashboard)/`: Authenticated routes. Utilizes a shared client-rendered protected layout (`app/(dashboard)/layout.tsx`) composing `AppShell` and reading `AuthContext` to guard routes and enforce RBAC.
+  - **Component Rendering Model:** Authenticated views remain client-rendered (`"use client"`) preserving the in-memory token and direct browser-to-FastAPI fetch lifecycle. Server Components are used for static shell wrappers or unauthenticated static pages where appropriate, but authenticated dashboard views do not attempt SSR token inspection.
+  - **Navigation:** Next.js `next/navigation` (`useRouter`, `usePathname`, `redirect`) and `next/link` replace `react-router-dom`'s `useNavigate`, `useLocation`, `<Link>`, and `<Navigate>`.
+
+**Page hierarchy (App Router route mapping):**
 ```
-Login / Register
-Dashboard (org home)
-Strategy → Goals
-Demand → Ideas List → Idea Detail (Business Case, Approval, Convert-to-Project)
-Portfolios → Portfolio List → Portfolio Detail (dashboard)
-Projects → Project Detail (Overview, Tasks, Milestones, Risks, Budget, Team)
-Admin (org_admin only) → Users & Roles
+/login                     → app/(auth)/login/page.tsx
+/register                  → app/(auth)/register/page.tsx
+/                          → app/(dashboard)/page.tsx (org dashboard home)
+/strategy/goals            → app/(dashboard)/strategy/goals/page.tsx
+/goals                     → app/(dashboard)/goals/page.tsx (alias/redirect)
+/demand/ideas              → app/(dashboard)/demand/ideas/page.tsx
+/ideas                     → app/(dashboard)/ideas/page.tsx (alias/redirect)
+/demand/ideas/[ideaId]     → app/(dashboard)/demand/ideas/[ideaId]/page.tsx
+/ideas/[ideaId]            → app/(dashboard)/ideas/[ideaId]/page.tsx (alias/redirect)
+/portfolios                → app/(dashboard)/portfolios/page.tsx
+/portfolios/[portfolioId]  → app/(dashboard)/portfolios/[portfolioId]/page.tsx
+/projects/[projectId]      → app/(dashboard)/projects/[projectId]/page.tsx
+/users                     → app/(dashboard)/users/page.tsx (org_admin only)
 ```
 
 ---
@@ -224,7 +297,7 @@ Enforcement: role-level via `require_role(...)` FastAPI dependency at the router
 - Pagination `[PROPOSED]`: `?limit=20&offset=0` → `{ "items": [...], "total": N }`.
 - Filtering: query params match field names (`?status=submitted`).
 - Timestamps: ISO 8601 UTC. IDs: UUID strings.
-- CORS: `allow_origins=[<exact Vercel URL>, http://localhost:5173]`, `allow_credentials=True` (required for the cookie flow).
+- CORS: `allow_origins=[<exact Vercel URL>, http://localhost:5173, http://localhost:3000]`, `allow_credentials=True` (required for the cookie flow; accommodates Vite dev port 5173 and Next.js dev port 3000).
 
 **Endpoint groups (full detail — request/response bodies, roles — lives in `mvp-requirements.md` per feature; this section fixes the routing surface):**
 `/auth`, `/users`, `/strategic-goals`, `/ideas`, `/ideas/{id}/business-case`, `/ideas/{id}/approvals`, `/ideas/{id}/convert`, `/portfolios`, `/projects`, `/projects/{id}/members`, `/projects/{id}/tasks`, `/projects/{id}/milestones`, `/projects/{id}/risks`, `/projects/{id}/budget`, `/projects/{id}/expenses`, `/portfolios/{id}/dashboard`, `/projects/{id}/dashboard`.
@@ -281,11 +354,14 @@ This is a hard rule for the implementation plan: do not add caching or backgroun
 - Deploy: Railway or Render, migrations run automatically via the entrypoint on each deploy.
 
 **Frontend:**
-- Multi-stage `Dockerfile` (build → static serve) for local parity/portability; Vercel builds directly from the repo in production.
-- CI: install deps → `npm run lint` → `npm run build`.
+- **Current Baseline:** Multi-stage `Dockerfile` (build → static serve via `serve` on port 4173) for local parity; Vercel builds directly from the repo via `npm run build`. CI: `npm run lint` → `npm run build`.
+- **Target Post-Migration:** Multi-stage `Dockerfile` with Next.js standalone output (`node server.js` on port 3000); Vercel auto-detects Next.js natively. CI: `npm run lint` → `npm run build`.
 - Deploy: Vercel, auto-deploy on `main`.
 
-**Environment variables `[PROPOSED names]`:** Backend — `DATABASE_URL`, `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `REFRESH_TOKEN_EXPIRE_DAYS`, `REDIS_URL`, `FRONTEND_ORIGIN`, `COOKIE_SECURE`, `COOKIE_SAMESITE`, `ENVIRONMENT`. Frontend — `VITE_API_URL`.
+**Environment variables:**
+- Backend — `DATABASE_URL`, `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `REFRESH_TOKEN_EXPIRE_DAYS`, `REDIS_URL`, `FRONTEND_ORIGIN`, `COOKIE_SECURE`, `COOKIE_SAMESITE`, `ENVIRONMENT`.
+- Frontend (Current Baseline): `VITE_API_URL` (consumed by Vite SPA).
+- Frontend (Target Next.js): `NEXT_PUBLIC_API_URL` (publicly exposed to browser for direct FastAPI communication; during transition, both may temporarily coexist in `.env.example`).
 
 ---
 
@@ -311,3 +387,4 @@ This is a hard rule for the implementation plan: do not add caching or backgroun
 | 6 | Redis & Celery provisioned but unused | No MVP feature needs them; avoids both under- and over-building infrastructure |
 | 7 | Shared-schema multi-tenancy via `organization_id` | Simplest approach satisfying the hard isolation requirement; RLS deferred as hardening |
 | 8 | PaaS deployment (Railway/Render + Vercel), Docker kept | Fast path to a live MVP; Docker preserves portability to any future host |
+| 9 | Next.js App Router as target frontend architecture | Modern React 19 / App Router foundation with route groups and standard layouts; preserves client-side in-memory auth model, direct FastAPI communication, and existing REST contracts |

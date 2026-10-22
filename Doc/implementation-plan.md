@@ -1,6 +1,7 @@
 # RicozPortfolio — Implementation Plan
 
 **Status:** Ready to execute. Built directly on `architecture.md` (how) and `mvp-requirements.md` (what) — no scope or architecture decisions are re-litigated here.
+**Frontend Migration Note (Next.js App Router):** A planned migration from the Phase 1 React+Vite SPA baseline to Next.js App Router has been approved. The backend implementation scope, DB schema, REST API contracts, and the core MVP journey are completely unchanged. Completed implementation history (Phases 1–5 frontend progress) was developed on the React+Vite baseline; the frontend transition plan and sequence are tracked in `Doc/nextjs-migration-plan.md`.
 **Audience:** this document is meant to be fed to an AI coding agent (e.g. Antigravity CLI) **one phase at a time**. Never paste the whole document as a single build instruction — see Section 0.
 
 ---
@@ -254,7 +255,7 @@ Rules for AI-assisted execution:
 
 - **Objective:** Live, publicly reachable MVP with automated deploys.
 - **Prerequisites:** Phase 11 done.
-- **Tasks:** Finalize backend `Dockerfile`/entrypoint; provision managed Postgres + Redis on Railway/Render; set all env vars (`architecture.md` §10) in the PaaS dashboard; connect `RicozPortfolio-Backend` repo for auto-deploy on `main`; connect `RicozPortfolio-Frontend` repo to Vercel with `VITE_API_URL` pointed at the deployed backend URL; set `FRONTEND_ORIGIN` on the backend to the exact Vercel URL (required for CORS+cookies per `architecture.md` §5–§6).
+- **Tasks:** Finalize backend `Dockerfile`/entrypoint; provision managed Postgres + Redis on Railway/Render; set all env vars (`architecture.md` §10) in the PaaS dashboard; connect `RicozPortfolio-Backend` repo for auto-deploy on `main`; connect `RicozPortfolio-Frontend` repo to Vercel with `NEXT_PUBLIC_API_URL` (or `VITE_API_URL` for pre-migration builds) pointed at the deployed backend URL; set `FRONTEND_ORIGIN` on the backend to the exact Vercel URL (required for CORS+cookies per `architecture.md` §5–§6).
 - **Files/folders:** no new app code; PaaS dashboard configuration + final `.env` values (not committed).
 - **DB changes:** run `alembic upgrade head` against the managed production database (via the deploy entrypoint).
 - **API endpoints:** none new — this is infra only.

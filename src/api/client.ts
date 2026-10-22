@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Thin fetch wrapper for the RicozPortfolio API.
  *
  * Phase 1 scope only: base URL, credentials handling, and the shape of the
@@ -11,7 +11,18 @@
  * Section 5 for the full cross-domain cookie rationale.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1'
+// Resolve API base URL for the current bundler / runtime.
+//
+// Next.js (webpack): reads NEXT_PUBLIC_API_URL which is statically inlined at
+// build time. import.meta.env is NOT available under webpack and must not be
+// referenced here -- doing so triggers a "Critical dependency" warning and can
+// cause a runtime module-resolution crash in development mode.
+//
+// Vite: this file is shared, but when bundled by Vite NEXT_PUBLIC_API_URL is
+// undefined and the fallback applies. Set VITE_API_URL in .env.local instead.
+//
+// Fallback: http://localhost:8000/api/v1 for local development without .env.
+const API_BASE_URL: string = process.env.NEXT_PUBLIC_API_URL?.trim() || 'http://localhost:8000/api/v1'
 
 let accessToken: string | null = null
 

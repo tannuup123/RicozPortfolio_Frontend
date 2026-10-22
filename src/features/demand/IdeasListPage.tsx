@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useMemo, type ComponentType } from 'react'
+import { Link as RouterLink } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getIdeas, createIdea } from '../../api/demand'
 import type { IdeaCreateRequest } from '../../api/demand'
@@ -9,7 +9,35 @@ import { CreateIdeaModal } from './components/CreateIdeaModal'
 
 const PAGE_SIZE = 10
 
-export function IdeasListPage() {
+interface UniversalLinkProps {
+    to: string
+    className?: string
+    children: React.ReactNode
+    LinkComponent?: ComponentType<any>
+}
+
+function UniversalLink({ to, className, children, LinkComponent }: UniversalLinkProps) {
+    if (LinkComponent) {
+        const Comp = LinkComponent as any
+        return (
+            <Comp href={to} className={className}>
+                {children}
+            </Comp>
+        )
+    }
+    return (
+        <RouterLink to={to} className={className}>
+            {children}
+        </RouterLink>
+    )
+}
+
+interface IdeasListPageProps {
+    LinkComponent?: ComponentType<any>
+}
+
+export function IdeasListPage({ LinkComponent }: IdeasListPageProps = {}) {
+
     const queryClient = useQueryClient()
     const [offset, setOffset] = useState(0)
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -107,12 +135,13 @@ export function IdeasListPage() {
                                 return (
                                     <tr key={idea.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4">
-                                            <Link
+                                            <UniversalLink
                                                 to={`/demand/ideas/${idea.id}`}
                                                 className="text-sm font-semibold text-indigo-600 hover:text-indigo-900 line-clamp-1"
+                                                LinkComponent={LinkComponent}
                                             >
                                                 {idea.title}
-                                            </Link>
+                                            </UniversalLink>
                                             <div className="text-xs text-gray-500 line-clamp-1 mt-0.5">
                                                 {idea.description}
                                             </div>
@@ -137,12 +166,13 @@ export function IdeasListPage() {
                                             })}
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                                            <Link
+                                            <UniversalLink
                                                 to={`/demand/ideas/${idea.id}`}
                                                 className="text-indigo-600 hover:text-indigo-900"
+                                                LinkComponent={LinkComponent}
                                             >
                                                 View Details &rarr;
-                                            </Link>
+                                            </UniversalLink>
                                         </td>
                                     </tr>
                                 )

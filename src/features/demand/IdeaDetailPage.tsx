@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useState, type ComponentType } from 'react'
+import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getIdea, updateIdea, deleteIdea, VALID_IDEA_TRANSITIONS } from '../../api/demand'
 import type { IdeaUpdateRequest, IdeaStatus } from '../../api/demand'
@@ -10,9 +10,41 @@ import { IdeaStatusBadge } from './components/IdeaStatusBadge'
 import { EditIdeaModal } from './components/EditIdeaModal'
 import { DeleteIdeaModal } from './components/DeleteIdeaModal'
 
-export function IdeaDetailPage() {
-    const { ideaId } = useParams<{ ideaId: string }>()
-    const navigate = useNavigate()
+interface UniversalLinkProps {
+    to: string
+    className?: string
+    children: React.ReactNode
+    LinkComponent?: ComponentType<any>
+}
+
+function UniversalLink({ to, className, children, LinkComponent }: UniversalLinkProps) {
+    if (LinkComponent) {
+        const Comp = LinkComponent as any
+        return (
+            <Comp href={to} className={className}>
+                {children}
+            </Comp>
+        )
+    }
+    return (
+        <RouterLink to={to} className={className}>
+            {children}
+        </RouterLink>
+    )
+}
+
+interface IdeaDetailPageProps {
+    ideaIdProp?: string
+    onNavigateBack?: (path?: string) => void
+    LinkComponent?: ComponentType<any>
+}
+
+export function IdeaDetailPage({ ideaIdProp, onNavigateBack, LinkComponent }: IdeaDetailPageProps = {}) {
+    const routeParams = useParams<{ ideaId: string }>()
+    const ideaId = ideaIdProp ?? routeParams.ideaId
+    const routerNavigate = useNavigate()
+    const navigate = onNavigateBack ?? ((path?: string) => routerNavigate(path ?? '/demand/ideas'))
+
     const queryClient = useQueryClient()
     const { user: currentUser } = useAuth()
 
@@ -89,9 +121,9 @@ export function IdeaDetailPage() {
     if (isError || !idea) {
         return (
             <div className="space-y-4">
-                <Link to="/demand/ideas" className="text-sm font-medium text-indigo-600 hover:text-indigo-900">
+                <UniversalLink to="/demand/ideas" className="text-sm font-medium text-indigo-600 hover:text-indigo-900" LinkComponent={LinkComponent}>
                     &larr; Back to Ideas
-                </Link>
+                </UniversalLink>
                 <div className="rounded-md bg-red-50 p-4 border border-red-200">
                     <p className="text-sm font-medium text-red-800">
                         Error loading idea: {error instanceof Error ? error.message : 'Idea not found'}
@@ -106,12 +138,13 @@ export function IdeaDetailPage() {
     return (
         <div className="space-y-6 max-w-5xl">
             <div>
-                <Link
+                <UniversalLink
                     to="/demand/ideas"
                     className="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-900"
+                    LinkComponent={LinkComponent}
                 >
                     &larr; Back to Ideas List
-                </Link>
+                </UniversalLink>
             </div>
 
             {/* Header */}
@@ -267,12 +300,13 @@ export function IdeaDetailPage() {
                                     <p className="text-xs text-gray-600">{linkedGoal.description}</p>
                                 )}
                                 <div className="pt-2">
-                                    <Link
+                                    <UniversalLink
                                         to="/strategy/goals"
                                         className="text-xs font-medium text-indigo-600 hover:text-indigo-900"
+                                        LinkComponent={LinkComponent}
                                     >
                                         View in Goals &rarr;
-                                    </Link>
+                                    </UniversalLink>
                                 </div>
                             </div>
                         ) : (
