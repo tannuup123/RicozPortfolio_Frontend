@@ -1,6 +1,15 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "typescript", "oxc"],
+  "ignorePatterns": [
+    ".next/**",
+    "dist/**",
+    "dist-ssr/**",
+    "node_modules/**",
+    "next-env.d.ts",
+    "tsconfig.tsbuildinfo",
+    "*.tsbuildinfo"
+  ],
   "rules": {
     "react/rules-of-hooks": "error",
     "react/only-export-components": ["warn", { "allowConstantExport": true }]
