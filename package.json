@@ -4,13 +4,17 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "lint": "oxlint",
-    "preview": "vite preview",
     "next:dev": "next dev",
     "next:build": "next build",
     "next:start": "next start",
+    "vite:dev": "vite",
+    "vite:build": "tsc -b && vite build",
+    "vite:preview": "vite preview",
+    "preview": "vite preview",
     "test:e2e": "playwright test"
   },
   "dependencies": {
