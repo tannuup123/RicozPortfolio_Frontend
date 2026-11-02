@@ -17,6 +17,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 
 import { AuthProvider, useAuth } from '../auth/AuthContext'
 import { bootstrapAuth } from '../auth/bootstrapAuth'
+import { ThemeProvider } from '../components/theme/ThemeProvider'
 
 function AppBootstrap({ children }: { children: ReactNode }) {
   const { setSession, setIsLoading } = useAuth()
@@ -44,9 +45,11 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AppBootstrap>{children}</AppBootstrap>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppBootstrap>{children}</AppBootstrap>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   )
 }
