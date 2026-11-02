@@ -1,7 +1,188 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
+/* ============================================================
+   Design Tokens — Light Mode
+   Source of truth: Doc/figma-visual-spec.md §1
+   ============================================================ */
+:root {
+  /* --- Surface & Canvas --- */
+  --canvas:          #f4f5f1;
+  --surface:         #ffffff;
+  --surface-subtle:  #f7f8f5;
+  --surface-teal:    #eaf3f0;
+  --input-bg:        #ffffff;
+
+  /* --- Text --- */
+  --ink:             #172620;
+  --ink-soft:        #52615b;
+  --muted:           #7d8984;
+
+  /* --- Borders --- */
+  --border:          #dfe5e1;
+  --border-strong:   #cbd4cf;
+
+  /* --- Brand / Primary --- */
+  --primary:         #126a5a;
+  --primary-hover:   #0b5749;
+  --on-primary:      #ffffff;
+  --on-success:      #ffffff;
+
+  /* --- Navigation (Sidebar) --- */
+  --nav:             #152923;
+  --nav-soft:        #203b33;
+
+  /* --- Semantic Status --- */
+  --success:         #237a57;
+  --success-bg:      #e7f4ec;
+  --warning:         #a86416;
+  --warning-bg:      #fff2dc;
+  --danger:          #b5483f;
+  --danger-bg:       #fbeae8;
+  --info:            #356d89;
+  --info-bg:         #e9f2f7;
+
+  /* --- Topbar --- */
+  --topbar-bg:       rgba(244, 245, 241, 0.92);
+
+  /* --- Table / List --- */
+  --row-hover:       #fafbf9;
+
+  /* --- Progress --- */
+  --progress-track:  #e9eeeb;
+
+  /* --- Badges (neutral) --- */
+  --neutral-bg:      #eff2f0;
+  --neutral-ink:     #596761;
+
+  /* --- Avatar --- */
+  --avatar-bg:       #d9e8e2;
+  --avatar-ink:      #255648;
+
+  /* --- Skeleton --- */
+  --skeleton:        #dfe5e1;
+
+  /* --- Overlays --- */
+  --overlay:         rgba(17, 35, 29, 0.58);
+  --scrim:           rgba(12, 27, 22, 0.46);
+
+  /* --- Focus / Ring --- */
+  --focus-ring:      rgba(18, 106, 90, 0.22);
+  --primary-ring:    rgba(18, 106, 90, 0.1);
+
+  /* --- Decorative --- */
+  --decorative:      #d8dfdb;
+
+  /* --- Marketing-specific text tokens --- */
+  --marketing-secondary:   #394943;
+  --marketing-muted:       #56655f;
+  --marketing-decorative:  #697771;
+  --marketing-border:      #aab8b2;
+
+  /* --- Shadows --- */
+  --shadow:          0 12px 34px rgba(26, 45, 38, 0.08);
+  --shadow-lg:       0 28px 80px rgba(18, 39, 32, 0.2);
+
+  /* --- Geometry --- */
+  --radius-sm:       8px;
+  --radius:          13px;
+  --radius-lg:       18px;
+}
+
+/* ============================================================
+   Design Tokens — Dark Mode
+   Applied via data-theme="dark" on <html> (set by ThemeProvider
+   and the pre-paint inline script in layout.tsx).
+   Source of truth: Doc/figma-visual-spec.md §1
+   ============================================================ */
+:root[data-theme="dark"] {
+  /* --- Surface & Canvas --- */
+  --canvas:          #111617;
+  --surface:         #191f20;
+  --surface-subtle:  #202728;
+  --surface-teal:    #17332d;
+  --input-bg:        #171d1e;
+
+  /* --- Text --- */
+  --ink:             #f0f4f2;
+  --ink-soft:        #b0bbb7;
+  --muted:           #84918d;
+
+  /* --- Borders --- */
+  --border:          #2d3635;
+  --border-strong:   #414c49;
+
+  /* --- Brand / Primary --- */
+  --primary:         #65bea8;
+  --primary-hover:   #7bcbb7;
+  --on-primary:      #09241d;
+
+  /* --- Navigation (Sidebar) --- */
+  --nav:             #111718;
+  --nav-soft:        #1c2926;
+
+  /* --- Semantic Status --- */
+  --success:         #6bc492;
+  --success-bg:      #163529;
+  --warning:         #e3a64f;
+  --warning-bg:      #3a2a16;
+  --danger:          #ed8278;
+  --danger-bg:       #3c2221;
+  --info:            #79b3d0;
+  --info-bg:         #1b303b;
+
+  /* --- Topbar --- */
+  --topbar-bg:       rgba(17, 22, 23, 0.9);
+
+  /* --- Table / List --- */
+  --row-hover:       #202728;
+
+  /* --- Progress --- */
+  --progress-track:  #303938;
+
+  /* --- Badges (neutral) --- */
+  --neutral-bg:      #2b3332;
+  --neutral-ink:     #c1cbc7;
+
+  /* --- Avatar --- */
+  --avatar-bg:       #264139;
+  --avatar-ink:      #b8e2d6;
+
+  /* --- Skeleton --- */
+  --skeleton:        #343d3b;
+
+  /* --- Overlays --- */
+  --overlay:         rgba(2, 7, 6, 0.74);
+
+  /* --- Shadows --- */
+  --shadow:          0 14px 38px rgba(0, 0, 0, 0.22);
+  --shadow-lg:       0 30px 90px rgba(0, 0, 0, 0.46);
+}
+
+/* ============================================================
+   Base resets
+   ============================================================ */
 html,
 body {
   height: 100%;
   margin: 0;
+  font-family: 'Manrope', system-ui, sans-serif;
+  background-color: var(--canvas);
+  color: var(--ink);
 }
+
+/* Smooth theme transitions — matches Doc/figma-visual-spec.md §4 */
+*,
+*::before,
+*::after {
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-duration: 180ms;
+  transition-timing-function: ease;
+}
+
+/* Opt out of transitions for elements where they cause flicker or UX issues */
+.no-transition,
+.no-transition * {
+  transition: none !important;
+}
+

@@ -46,7 +46,11 @@ test.describe('E2E Session Restoration & Sign Out', () => {
     // Verify user is still authenticated and sees the Dashboard
     await expect(page.getByRole('heading', { name: /Dashboard/i })).toBeVisible()
 
-    // 3. Sign out
+    // 3. Sign out — User profile trigger dropdown contains the Sign out button in Phase 3 DashboardShell
+    const profileTrigger = page.getByRole('button', { name: /User profile menu/i })
+    if (await profileTrigger.isVisible()) {
+      await profileTrigger.click()
+    }
     const logoutBtn = page.getByRole('button', { name: /Sign out/i })
     await expect(logoutBtn).toBeVisible()
 
@@ -60,11 +64,16 @@ test.describe('E2E Session Restoration & Sign Out', () => {
     await page.waitForURL('**/login')
     expect(page.url()).toContain('/login')
 
-    // 4. Verify logged-out user cannot access protected dashboard content
-    await page.goto('/')
+    // 4. Verify logged-out user accessing a protected route redirects to /login,
+    // and visiting '/' shows the public landing page (Phase 4 root architecture).
+    await page.goto('/strategy/goals')
     await page.waitForURL('**/login')
     expect(page.url()).toContain('/login')
     await expect(page.getByRole('heading', { name: /Sign in to RicozPortfolio/i })).toBeVisible()
+
+    await page.goto('/')
+    await expect(page.getByRole('heading', { name: /From strategic vision to delivered impact/i })).toBeVisible()
+    expect(page.url()).not.toContain('/login')
   })
 })
 

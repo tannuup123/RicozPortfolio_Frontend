@@ -1,31 +1,40 @@
 'use client'
 
 /**
- * Dashboard home page (/).
+ * Root Page (/) — Dual-mode entry point:
+ * - Unauthenticated visitors: renders the full marketing LandingPage without DashboardShell.
+ * - Authenticated visitors: renders DashboardOverviewView within the shared (dashboard) layout / DashboardShell.
  *
- * Protected by the (dashboard) layout auth guard.
- * Real dashboard content (metrics, project summaries) is a feature-phase task.
- * This page is a placeholder that confirms the auth guard, AppShell, and routing
- * are all working correctly end-to-end.
+ * Auth bootstrap behavior:
+ * - While isLoading is true, shows an unobtrusive loader while silent-refresh completes.
+ * - When bootstrap settles:
+ *     - If isAuthenticated: renders DashboardOverviewView (DashboardShell is provided by the (dashboard) layout).
+ *     - If not authenticated: renders the public LandingPage.
  */
 
 import { useAuth } from '../../auth/AuthContext'
+import { DashboardOverviewView } from '../../features/dashboard/DashboardOverviewView'
+import { LandingPage } from '../../features/landing/LandingPage'
 
-export default function DashboardPage() {
-  const { user } = useAuth()
+export default function RootHomePage() {
+  const { isAuthenticated, isLoading } = useAuth()
 
-  return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-      {user && (
-        <p className="text-sm text-gray-600">
-          Welcome, <strong>{user.name}</strong>. Organisation:{' '}
-          <code className="text-xs">{user.organization_id}</code>
-        </p>
-      )}
-      <p className="text-sm text-gray-500">
-        Dashboard content will be implemented in the feature migration phase.
-      </p>
-    </div>
-  )
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--canvas)]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-3 border-[var(--border)] border-t-[var(--primary)]" />
+          <p className="text-xs font-semibold text-[var(--ink-soft)]">
+            Loading...
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (isAuthenticated) {
+    return <DashboardOverviewView />
+  }
+
+  return <LandingPage />
 }
