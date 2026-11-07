@@ -21,7 +21,7 @@ export default function DemandIdeaDetailPage() {
   return (
     <IdeaDetailPage
       ideaIdProp={params.ideaId}
-      onNavigateBack={() => router.push('/demand/ideas')}
+      onNavigateBack={(path) => router.push(path ?? '/demand/ideas')}
       LinkComponent={Link}
     />
   )

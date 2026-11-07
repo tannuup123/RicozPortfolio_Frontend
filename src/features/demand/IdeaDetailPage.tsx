@@ -1,14 +1,36 @@
 import { useState, type ComponentType } from 'react'
-import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom'
+import { useParams, Link as RouterLink, useNavigate, useInRouterContext } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getIdea, updateIdea, deleteIdea, VALID_IDEA_TRANSITIONS } from '../../api/demand'
-import type { IdeaUpdateRequest, IdeaStatus } from '../../api/demand'
+import {
+    getIdea,
+    updateIdea,
+    deleteIdea,
+    VALID_IDEA_TRANSITIONS,
+    getBusinessCase,
+    createBusinessCase,
+    updateBusinessCase,
+    listApprovals,
+    createApproval,
+    convertIdeaToProject,
+} from '../../api/demand'
+import type {
+    IdeaUpdateRequest,
+    IdeaStatus,
+    BusinessCaseCreateRequest,
+    BusinessCaseUpdateRequest,
+    ApprovalDecision,
+} from '../../api/demand'
+import { getPortfolios } from '../../api/portfolios'
 import { getGoal } from '../../api/strategy'
 import { useAuth } from '../../auth/AuthContext'
 import { RoleName } from '../../api/users'
 import { IdeaStatusBadge } from './components/IdeaStatusBadge'
 import { EditIdeaModal } from './components/EditIdeaModal'
 import { DeleteIdeaModal } from './components/DeleteIdeaModal'
+import { BusinessCaseCard } from './components/BusinessCaseCard'
+import { ApprovalSection } from './components/ApprovalSection'
+import { ConvertIdeaModal } from './components/ConvertIdeaModal'
+import { Button } from '../../components/ui'
 
 interface UniversalLinkProps {
     to: string
@@ -39,19 +61,70 @@ interface IdeaDetailPageProps {
     LinkComponent?: ComponentType<any>
 }
 
-export function IdeaDetailPage({ ideaIdProp, onNavigateBack, LinkComponent }: IdeaDetailPageProps = {}) {
+function IdeaDetailWithRouter({
+    ideaIdProp,
+    onNavigateBack,
+    LinkComponent,
+}: IdeaDetailPageProps) {
     const routeParams = useParams<{ ideaId: string }>()
-    const ideaId = ideaIdProp ?? routeParams.ideaId
     const routerNavigate = useNavigate()
-    const navigate = onNavigateBack ?? ((path?: string) => routerNavigate(path ?? '/demand/ideas'))
+    const ideaId = ideaIdProp ?? routeParams.ideaId
+    const navigate = onNavigateBack ?? ((path?: string) => {
+        routerNavigate(path ?? '/demand/ideas')
+    })
+
+    return (
+        <IdeaDetailContent
+            ideaId={ideaId}
+            navigate={navigate}
+            LinkComponent={LinkComponent}
+        />
+    )
+}
+
+function IdeaDetailStandalone({
+    ideaIdProp,
+    onNavigateBack,
+    LinkComponent,
+}: IdeaDetailPageProps) {
+    const navigate = onNavigateBack ?? (() => {})
+
+    return (
+        <IdeaDetailContent
+            ideaId={ideaIdProp}
+            navigate={navigate}
+            LinkComponent={LinkComponent}
+        />
+    )
+}
+
+export function IdeaDetailPage(props: IdeaDetailPageProps = {}) {
+    const inRouter = useInRouterContext()
+    if (inRouter) {
+        return <IdeaDetailWithRouter {...props} />
+    }
+    return <IdeaDetailStandalone {...props} />
+}
+
+interface IdeaDetailContentProps {
+    ideaId?: string
+    navigate: (path?: string) => void
+    LinkComponent?: ComponentType<any>
+}
+
+function IdeaDetailContent({ ideaId, navigate, LinkComponent }: IdeaDetailContentProps) {
 
     const queryClient = useQueryClient()
     const { user: currentUser } = useAuth()
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [isConvertModalOpen, setIsConvertModalOpen] = useState(false)
     const [transitionError, setTransitionError] = useState<string | null>(null)
+    const [conversionSuccessMessage, setConversionSuccessMessage] = useState<string | null>(null)
+    const [createdProjectId, setCreatedProjectId] = useState<string | null>(null)
 
+    // Idea details query
     const {
         data: idea,
         isLoading,
@@ -63,19 +136,51 @@ export function IdeaDetailPage({ ideaIdProp, onNavigateBack, LinkComponent }: Id
         enabled: !!ideaId,
     })
 
+    // Business case query
+    const {
+        data: businessCase,
+        isLoading: isLoadingBusinessCase,
+    } = useQuery({
+        queryKey: ['business-case', ideaId],
+        queryFn: () => getBusinessCase(ideaId!),
+        enabled: !!ideaId,
+    })
+
+    // Approvals query
+    const {
+        data: approvalsData,
+        isLoading: isLoadingApprovals,
+    } = useQuery({
+        queryKey: ['approvals', ideaId],
+        queryFn: () => listApprovals(ideaId!),
+        enabled: !!ideaId,
+    })
+
+    // Portfolios query for conversion modal
+    const {
+        data: portfoliosData,
+        isLoading: isLoadingPortfolios,
+    } = useQuery({
+        queryKey: ['portfolios'],
+        queryFn: () => getPortfolios({ limit: 100 }),
+        enabled: isConvertModalOpen,
+    })
+
+    // Linked strategic goal query
     const { data: linkedGoal } = useQuery({
         queryKey: ['strategic-goals', idea?.strategic_goal_id],
         queryFn: () => getGoal(idea!.strategic_goal_id!),
         enabled: !!idea?.strategic_goal_id,
     })
 
-    const isOrgAdmin = currentUser?.roles.includes(RoleName.ORG_ADMIN)
-    const isPortfolioManager = currentUser?.roles.includes(RoleName.PORTFOLIO_MANAGER)
+    const isOrgAdmin = !!currentUser?.roles.includes(RoleName.ORG_ADMIN)
+    const isPortfolioManager = !!currentUser?.roles.includes(RoleName.PORTFOLIO_MANAGER)
     const canManageStatus = isOrgAdmin || isPortfolioManager
     const canDelete = isOrgAdmin || isPortfolioManager
     const isAuthor = currentUser?.id === idea?.author_id
     const canEditContent = canManageStatus || (isAuthor && idea?.status === 'draft')
 
+    // Idea update mutation
     const updateMutation = useMutation({
         mutationFn: (data: IdeaUpdateRequest) => updateIdea(ideaId!, data),
         onSuccess: () => {
@@ -84,11 +189,50 @@ export function IdeaDetailPage({ ideaIdProp, onNavigateBack, LinkComponent }: Id
         },
     })
 
+    // Idea delete mutation
     const deleteMutation = useMutation({
         mutationFn: (id: string) => deleteIdea(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['ideas'] })
             navigate('/demand/ideas')
+        },
+    })
+
+    // Business case mutation (create or update)
+    const saveBusinessCaseMutation = useMutation({
+        mutationFn: async (payload: BusinessCaseCreateRequest | BusinessCaseUpdateRequest) => {
+            if (businessCase) {
+                return updateBusinessCase(ideaId!, payload)
+            }
+            return createBusinessCase(ideaId!, payload)
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['business-case', ideaId] })
+            queryClient.invalidateQueries({ queryKey: ['ideas', ideaId] })
+        },
+    })
+
+    // Approval mutation
+    const approvalMutation = useMutation({
+        mutationFn: (payload: { decision: ApprovalDecision; notes?: string }) =>
+            createApproval(ideaId!, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['approvals', ideaId] })
+            queryClient.invalidateQueries({ queryKey: ['ideas', ideaId] })
+            queryClient.invalidateQueries({ queryKey: ['ideas'] })
+        },
+    })
+
+    // Convert mutation
+    const convertMutation = useMutation({
+        mutationFn: (portfolioId?: string | null) =>
+            convertIdeaToProject(ideaId!, { portfolio_id: portfolioId }),
+        onSuccess: (project) => {
+            setIsConvertModalOpen(false)
+            setCreatedProjectId(project.id)
+            setConversionSuccessMessage(`Idea converted successfully to project "${project.name}".`)
+            queryClient.invalidateQueries({ queryKey: ['ideas', ideaId] })
+            navigate(`/projects/${project.id}`)
         },
     })
 
@@ -108,6 +252,18 @@ export function IdeaDetailPage({ ideaIdProp, onNavigateBack, LinkComponent }: Id
             const error = err as { status?: number; message?: string }
             setTransitionError(error.message || `Failed to transition idea to ${nextStatus}.`)
         }
+    }
+
+    const handleSaveBusinessCase = async (payload: BusinessCaseCreateRequest | BusinessCaseUpdateRequest) => {
+        await saveBusinessCaseMutation.mutateAsync(payload)
+    }
+
+    const handleRecordApproval = async (decision: ApprovalDecision, notes?: string) => {
+        await approvalMutation.mutateAsync({ decision, notes })
+    }
+
+    const handleConvertConfirm = async (portfolioId?: string | null) => {
+        await convertMutation.mutateAsync(portfolioId)
     }
 
     if (isLoading) {
@@ -134,9 +290,10 @@ export function IdeaDetailPage({ ideaIdProp, onNavigateBack, LinkComponent }: Id
     }
 
     const validTransitions = VALID_IDEA_TRANSITIONS[idea.status] || []
+    const isApproved = idea.status === 'approved'
 
     return (
-        <div className="space-y-6 max-w-5xl">
+        <div className="space-y-6 max-w-5xl" data-testid="idea-detail-page">
             <div>
                 <UniversalLink
                     to="/demand/ideas"
@@ -171,6 +328,17 @@ export function IdeaDetailPage({ ideaIdProp, onNavigateBack, LinkComponent }: Id
                 </div>
 
                 <div className="flex items-center gap-3">
+                    {/* Convert to Project Action (When Approved) */}
+                    {isApproved && canManageStatus && (
+                        <Button
+                            variant="primary"
+                            onClick={() => setIsConvertModalOpen(true)}
+                            data-testid="convert-project-cta"
+                        >
+                            Convert to Project
+                        </Button>
+                    )}
+
                     {canEditContent && (
                         <button
                             type="button"
@@ -198,9 +366,28 @@ export function IdeaDetailPage({ ideaIdProp, onNavigateBack, LinkComponent }: Id
                 </div>
             )}
 
+            {/* Conversion Success Notification */}
+            {conversionSuccessMessage && (
+                <div className="rounded-lg bg-emerald-50 p-4 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="text-xs sm:text-sm text-emerald-900 font-medium">
+                        ✓ {conversionSuccessMessage}
+                    </div>
+                    {createdProjectId && (
+                        <UniversalLink
+                            to={`/projects/${createdProjectId}`}
+                            className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 underline whitespace-nowrap"
+                            LinkComponent={LinkComponent}
+                        >
+                            View Project &rarr;
+                        </UniversalLink>
+                    )}
+                </div>
+            )}
+
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                {/* Main Details */}
+                {/* Main Details Column */}
                 <div className="lg:col-span-2 space-y-6">
+                    {/* Idea Description */}
                     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-xs">
                         <h2 className="text-base font-semibold text-gray-900 mb-3">Idea Description</h2>
                         <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
@@ -208,21 +395,28 @@ export function IdeaDetailPage({ ideaIdProp, onNavigateBack, LinkComponent }: Id
                         </div>
                     </div>
 
-                    {/* Phase 6 Preview Banner */}
-                    <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center">
-                        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 mb-3">
-                            <span className="font-bold text-sm">P6</span>
-                        </div>
-                        <h3 className="text-sm font-semibold text-gray-900">
-                            Business Case & Approval Workflow (Phase 6)
-                        </h3>
-                        <p className="mt-1 text-xs text-gray-500 max-w-md mx-auto">
-                            In Phase 6, you will be able to attach financial ROI business cases, perform formal portfolio approvals, and convert approved ideas into active projects.
-                        </p>
-                    </div>
+                    {/* Phase 6: Business Case Card */}
+                    <BusinessCaseCard
+                        businessCase={businessCase ?? null}
+                        isLoading={isLoadingBusinessCase}
+                        canManage={canManageStatus}
+                        onSave={handleSaveBusinessCase}
+                        isSaving={saveBusinessCaseMutation.isPending}
+                    />
+
+                    {/* Phase 6: Governance Decisions & Audit Trail */}
+                    <ApprovalSection
+                        approvals={approvalsData?.items ?? []}
+                        isLoading={isLoadingApprovals}
+                        canApprove={canManageStatus}
+                        hasBusinessCase={!!businessCase}
+                        currentStatus={idea.status}
+                        onRecordDecision={handleRecordApproval}
+                        isSubmitting={approvalMutation.isPending}
+                    />
                 </div>
 
-                {/* Sidebar Cards */}
+                {/* Sidebar Cards Column */}
                 <div className="space-y-6">
                     {/* Lifecycle & Status Transitions */}
                     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-xs space-y-4">
@@ -237,7 +431,7 @@ export function IdeaDetailPage({ ideaIdProp, onNavigateBack, LinkComponent }: Id
                         {canManageStatus && validTransitions.length > 0 && (
                             <div className="pt-3 border-t border-gray-100 space-y-2">
                                 <span className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                    Available Actions
+                                    Status Actions
                                 </span>
                                 {validTransitions.map((nextStatus) => {
                                     const actionLabel =
@@ -330,6 +524,16 @@ export function IdeaDetailPage({ ideaIdProp, onNavigateBack, LinkComponent }: Id
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={handleDeleteConfirm}
+            />
+
+            <ConvertIdeaModal
+                isOpen={isConvertModalOpen}
+                onClose={() => setIsConvertModalOpen(false)}
+                onConvert={handleConvertConfirm}
+                portfolios={portfoliosData?.items ?? []}
+                isLoadingPortfolios={isLoadingPortfolios}
+                isConverting={convertMutation.isPending}
+                ideaTitle={idea.title}
             />
         </div>
     )
