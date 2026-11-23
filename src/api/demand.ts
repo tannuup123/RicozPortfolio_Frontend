@@ -143,3 +143,180 @@ export async function deleteIdea(ideaId: string): Promise<void> {
         throw err
     }
 }
+
+// ---------------------------------------------------------------------------
+// Phase 6: Business Case Contracts & APIs
+// ---------------------------------------------------------------------------
+
+export interface BusinessCaseCreateRequest {
+    estimated_cost: number
+    estimated_benefit: number
+}
+
+export interface BusinessCaseUpdateRequest {
+    estimated_cost: number
+    estimated_benefit: number
+}
+
+export interface BusinessCaseResponse {
+    id: string
+    idea_id: string
+    estimated_cost: number
+    estimated_benefit: number
+    roi: number | null
+    created_at: string
+    updated_at: string
+}
+
+export async function getBusinessCase(ideaId: string): Promise<BusinessCaseResponse | null> {
+    const res = await apiFetch(`/ideas/${ideaId}/business-case`)
+
+    if (res.status === 404) {
+        return null
+    }
+
+    if (!res.ok) {
+        const message = await extractErrorMessage(res)
+        const err = new Error(message) as Error & { status: number }
+        err.status = res.status
+        throw err
+    }
+
+    return res.json() as Promise<BusinessCaseResponse>
+}
+
+export async function createBusinessCase(
+    ideaId: string,
+    data: BusinessCaseCreateRequest
+): Promise<BusinessCaseResponse> {
+    const res = await apiFetch(`/ideas/${ideaId}/business-case`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    })
+
+    if (!res.ok) {
+        const message = await extractErrorMessage(res)
+        const err = new Error(message) as Error & { status: number }
+        err.status = res.status
+        throw err
+    }
+
+    return res.json() as Promise<BusinessCaseResponse>
+}
+
+export async function updateBusinessCase(
+    ideaId: string,
+    data: BusinessCaseUpdateRequest
+): Promise<BusinessCaseResponse> {
+    const res = await apiFetch(`/ideas/${ideaId}/business-case`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    })
+
+    if (!res.ok) {
+        const message = await extractErrorMessage(res)
+        const err = new Error(message) as Error & { status: number }
+        err.status = res.status
+        throw err
+    }
+
+    return res.json() as Promise<BusinessCaseResponse>
+}
+
+// ---------------------------------------------------------------------------
+// Phase 6: Approval Contracts & APIs
+// ---------------------------------------------------------------------------
+
+export type ApprovalDecision = 'approved' | 'rejected'
+
+export interface ApprovalCreateRequest {
+    decision: ApprovalDecision
+    notes?: string | null
+}
+
+export interface ApprovalResponse {
+    id: string
+    idea_id: string
+    approver_id: string
+    decision: ApprovalDecision
+    notes: string | null
+    created_at: string
+    updated_at: string
+}
+
+export interface ApprovalListResponse {
+    items: ApprovalResponse[]
+    total: number
+}
+
+export async function listApprovals(ideaId: string): Promise<ApprovalListResponse> {
+    const res = await apiFetch(`/ideas/${ideaId}/approvals`)
+
+    if (!res.ok) {
+        const message = await extractErrorMessage(res)
+        const err = new Error(message) as Error & { status: number }
+        err.status = res.status
+        throw err
+    }
+
+    return res.json() as Promise<ApprovalListResponse>
+}
+
+export async function createApproval(
+    ideaId: string,
+    data: ApprovalCreateRequest
+): Promise<ApprovalResponse> {
+    const res = await apiFetch(`/ideas/${ideaId}/approvals`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    })
+
+    if (!res.ok) {
+        const message = await extractErrorMessage(res)
+        const err = new Error(message) as Error & { status: number }
+        err.status = res.status
+        throw err
+    }
+
+    return res.json() as Promise<ApprovalResponse>
+}
+
+// ---------------------------------------------------------------------------
+// Phase 6: Project Conversion Contracts & APIs
+// ---------------------------------------------------------------------------
+
+export interface ProjectConvertRequest {
+    portfolio_id?: string | null
+}
+
+export interface ProjectConvertedResponse {
+    id: string
+    organization_id: string
+    name: string
+    description: string | null
+    status: string
+    portfolio_id: string | null
+    source_idea_id: string | null
+    created_at: string
+    updated_at: string
+}
+
+export async function convertIdeaToProject(
+    ideaId: string,
+    data: ProjectConvertRequest
+): Promise<ProjectConvertedResponse> {
+    const res = await apiFetch(`/ideas/${ideaId}/convert`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    })
+
+    if (!res.ok) {
+        const message = await extractErrorMessage(res)
+        const err = new Error(message) as Error & { status: number }
+        err.status = res.status
+        throw err
+    }
+
+    return res.json() as Promise<ProjectConvertedResponse>
+}
+
