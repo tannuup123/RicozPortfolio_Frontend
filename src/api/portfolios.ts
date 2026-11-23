@@ -1,4 +1,5 @@
 import { apiFetch } from './client'
+import { parseApiError } from './errors'
 
 export interface PortfolioSummary {
     id: string
@@ -9,24 +10,23 @@ export interface PortfolioSummary {
     updated_at: string
 }
 
+export interface PortfolioDetail extends PortfolioSummary {
+    project_count: number
+}
+
+export interface CreatePortfolioPayload {
+    name: string
+    description?: string | null
+}
+
+export interface UpdatePortfolioPayload {
+    name?: string
+    description?: string | null
+}
+
 export interface PortfolioListResponse {
     items: PortfolioSummary[]
     total: number
-}
-
-async function extractErrorMessage(res: Response): Promise<string> {
-    try {
-        const body = (await res.json()) as Record<string, unknown>
-        if (body.error && typeof body.error === 'object' && 'message' in (body.error as object)) {
-            return String((body.error as Record<string, unknown>).message)
-        }
-        if (typeof body.detail === 'string') {
-            return body.detail
-        }
-    } catch {
-        // ignore JSON parse errors
-    }
-    return `Request failed with status ${res.status}`
 }
 
 export async function getPortfolios(params?: { limit?: number; offset?: number }): Promise<PortfolioListResponse> {
@@ -38,11 +38,56 @@ export async function getPortfolios(params?: { limit?: number; offset?: number }
     const res = await apiFetch(`/portfolios${queryString}`)
 
     if (!res.ok) {
-        const message = await extractErrorMessage(res)
-        const err = new Error(message) as Error & { status: number }
-        err.status = res.status
-        throw err
+        throw await parseApiError(res)
     }
 
     return res.json() as Promise<PortfolioListResponse>
+}
+
+export async function createPortfolio(data: CreatePortfolioPayload): Promise<PortfolioSummary> {
+    const res = await apiFetch('/portfolios', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    })
+
+    if (!res.ok) {
+        throw await parseApiError(res)
+    }
+
+    return res.json() as Promise<PortfolioSummary>
+}
+
+export async function getPortfolio(portfolioId: string): Promise<PortfolioDetail> {
+    const res = await apiFetch(`/portfolios/${portfolioId}`)
+
+    if (!res.ok) {
+        throw await parseApiError(res)
+    }
+
+    return res.json() as Promise<PortfolioDetail>
+}
+
+export async function updatePortfolio(portfolioId: string, data: UpdatePortfolioPayload): Promise<PortfolioSummary> {
+    const res = await apiFetch(`/portfolios/${portfolioId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    })
+
+    if (!res.ok) {
+        throw await parseApiError(res)
+    }
+
+    return res.json() as Promise<PortfolioSummary>
+}
+
+export async function deletePortfolio(portfolioId: string): Promise<void> {
+    const res = await apiFetch(`/portfolios/${portfolioId}`, {
+        method: 'DELETE',
+    })
+
+    if (!res.ok) {
+        throw await parseApiError(res)
+    }
+
+    // 204 responses are handled as void
 }

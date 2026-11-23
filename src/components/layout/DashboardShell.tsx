@@ -8,7 +8,6 @@
  *   - Width: 264px, background: var(--nav) (#152923 light / #111718 dark)
  *   - Monogram / Org badge, logo Compass icon with teal accent
  *   - Nav links with active indicator (3px inset #74b6a6, bg #29473e, text #ffffff)
- *   - Portfolio health mini-card note
  *   - User profile foot with avatar and role
  *   - Responsive mobile drawer behavior for screens <= 820px
  * - Topbar:
@@ -99,6 +98,27 @@ export function DashboardShell({ children }: DashboardShellProps) {
       ),
     },
     {
+      href: '/projects',
+      label: 'Projects',
+      icon: (
+        <svg
+          aria-hidden="true"
+          focusable="false"
+          className="h-[18px] w-[18px]"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+          />
+        </svg>
+      ),
+    },
+    {
       href: '/users',
       label: 'Team Members',
       icon: (
@@ -162,6 +182,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? 'page' : undefined}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`group flex min-h-[42px] items-center gap-2.5 rounded-[9px] px-3 text-[13px] font-semibold transition-all duration-150 ${
                   active
@@ -184,19 +205,8 @@ export function DashboardShell({ children }: DashboardShellProps) {
         </nav>
       </div>
 
-      {/* Footer Area: Health Note + User foot */}
+      {/* Footer Area: User foot */}
       <div className="flex flex-col gap-3 pt-4">
-        {/* Portfolio Health mini-card */}
-        <div className="rounded-[11px] border border-white/5 bg-[#1a2d27] p-3 text-white">
-          <div className="flex items-center justify-between text-[10px] font-bold text-[#8fa39b]">
-            <span>Portfolio Health</span>
-            <span className="text-[#aad3c8]">72%</span>
-          </div>
-          <div className="mt-2 h-[4px] w-full overflow-hidden rounded-full bg-white/10">
-            <div className="h-full bg-[#70b09f]" style={{ width: '72%' }} />
-          </div>
-        </div>
-
         {/* User Foot with Avatar */}
         <div className="flex items-center justify-between border-t border-white/10 pt-3 px-1">
           <div className="flex items-center gap-2.5 min-w-0">

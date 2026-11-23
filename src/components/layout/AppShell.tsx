@@ -7,16 +7,43 @@
  */
 
 import type { ReactNode } from 'react'
-import { Link, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 
 import { logout } from '../../api/auth'
 import { useAuth } from '../../auth/AuthContext'
 
-const NAV_LINKS = [
+interface NavItem {
+    to: string
+    label: string
+    icon?: ReactNode
+}
+
+const NAV_LINKS: NavItem[] = [
     { to: '/', label: 'Dashboard' },
     { to: '/strategy/goals', label: 'Strategy' },
     { to: '/demand/ideas', label: 'Demand' },
     { to: '/portfolios', label: 'Portfolios' },
+    {
+        to: '/projects',
+        label: 'Projects',
+        icon: (
+            <svg
+                aria-hidden="true"
+                focusable="false"
+                className="h-4 w-4 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="1.5"
+            >
+                <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
+            </svg>
+        ),
+    },
     { to: '/users', label: 'Users' },
 ]
 
@@ -39,9 +66,21 @@ export function AppShell({ children }: { children?: ReactNode }) {
                 <div className="mb-6 text-lg font-semibold">RicozPortfolio</div>
                 <nav className="flex flex-col gap-2">
                     {NAV_LINKS.map((link) => (
-                        <Link key={link.to} to={link.to} className="text-sm text-gray-700 hover:text-black">
+                        <NavLink
+                            key={link.to}
+                            to={link.to}
+                            end={link.to === '/'}
+                            className={({ isActive }) =>
+                                `flex items-center gap-2 text-sm ${
+                                    isActive
+                                        ? 'font-semibold text-black'
+                                        : 'text-gray-700 hover:text-black'
+                                }`
+                            }
+                        >
+                            {link.icon}
                             {link.label}
-                        </Link>
+                        </NavLink>
                     ))}
                 </nav>
             </aside>

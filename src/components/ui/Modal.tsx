@@ -9,6 +9,60 @@ export interface ModalProps {
   footer?: React.ReactNode
   maxWidth?: string
   className?: string
+  /**
+   * When true, disables closing the modal via Escape, backdrop click, or the header close button.
+   * Useful when an async operation (such as deletion or saving) is in progress.
+   */
+  disableClose?: boolean
+}
+
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'area[href]',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  'button:not([disabled])',
+  'iframe',
+  'object',
+  'embed',
+  '[contenteditable]',
+  '[tabindex]:not([tabindex="-1"]):not([disabled])',
+].join(', ')
+
+function getFocusableElements(container: HTMLElement | null): HTMLElement[] {
+  if (!container) return []
+  const elements = Array.from(
+    container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+  )
+
+  return elements.filter((el) => {
+    // Exclude disabled or aria-disabled elements
+    if (el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true') {
+      return false
+    }
+    // Exclude hidden elements or elements marked aria-hidden
+    if (el.hidden || el.getAttribute('aria-hidden') === 'true') {
+      return false
+    }
+    // Exclude elements styled as display: none or visibility: hidden
+    if (el.style.display === 'none' || el.style.visibility === 'hidden') {
+      return false
+    }
+    // Check closest hidden ancestors
+    if (el.closest('[hidden], [aria-hidden="true"]')) {
+      return false
+    }
+    // Check visibility via checkVisibility if supported by browser/runtime
+    if (typeof el.checkVisibility === 'function') {
+      try {
+        return el.checkVisibility({ checkVisibilityCSS: true })
+      } catch {
+        return el.checkVisibility()
+      }
+    }
+    return true
+  })
 }
 
 export function Modal({
@@ -20,11 +74,20 @@ export function Modal({
   footer,
   maxWidth = 'max-w-[530px]',
   className = '',
+  disableClose = false,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null)
   const previousActiveElement = useRef<HTMLElement | null>(null)
+  const onCloseRef = useRef(onClose)
+  const disableCloseRef = useRef(disableClose)
 
-  // Escape key handler and focus restore
+  // Keep callback and flag refs synchronized without triggering focus churn
+  useEffect(() => {
+    onCloseRef.current = onClose
+    disableCloseRef.current = disableClose
+  })
+
+  // Escape key handler, focus trap, and focus restore on open/close boundary only
   useEffect(() => {
     if (!isOpen) return
 
@@ -33,39 +96,53 @@ export function Modal({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.stopPropagation()
-        onClose()
+        if (!disableCloseRef.current) {
+          onCloseRef.current?.()
+        }
         return
       }
 
       // Tab trap inside modal
       if (event.key === 'Tab' && modalRef.current) {
-        const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-        )
-        if (focusableElements.length === 0) return
+        const focusableElements = getFocusableElements(modalRef.current)
+        if (focusableElements.length === 0) {
+          event.preventDefault()
+          modalRef.current.focus()
+          return
+        }
 
         const firstElement = focusableElements[0]
         const lastElement = focusableElements[focusableElements.length - 1]
 
-        if (event.shiftKey && document.activeElement === firstElement) {
-          event.preventDefault()
-          lastElement.focus()
-        } else if (!event.shiftKey && document.activeElement === lastElement) {
-          event.preventDefault()
-          firstElement.focus()
+        if (event.shiftKey) {
+          if (
+            document.activeElement === firstElement ||
+            document.activeElement === modalRef.current ||
+            !modalRef.current.contains(document.activeElement)
+          ) {
+            event.preventDefault()
+            lastElement.focus()
+          }
+        } else {
+          if (
+            document.activeElement === lastElement ||
+            !modalRef.current.contains(document.activeElement)
+          ) {
+            event.preventDefault()
+            firstElement.focus()
+          }
         }
       }
     }
 
     document.addEventListener('keydown', handleKeyDown)
+
     // Focus first focusable element or modal container
     const timer = setTimeout(() => {
       if (modalRef.current) {
-        const firstFocusable = modalRef.current.querySelector<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-        )
-        if (firstFocusable) {
-          firstFocusable.focus()
+        const focusableElements = getFocusableElements(modalRef.current)
+        if (focusableElements.length > 0) {
+          focusableElements[0].focus()
         } else {
           modalRef.current.focus()
         }
@@ -84,7 +161,7 @@ export function Modal({
         previousActiveElement.current.focus()
       }
     }
-  }, [isOpen, onClose])
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -99,7 +176,7 @@ export function Modal({
       {/* Backdrop with blur & overlay token */}
       <div
         className="fixed inset-0 bg-[var(--overlay)] backdrop-blur-[4px] transition-opacity"
-        onClick={onClose}
+        onClick={disableClose ? undefined : onClose}
         aria-hidden="true"
       />
 
@@ -133,9 +210,15 @@ export function Modal({
             </div>
             <button
               type="button"
-              onClick={onClose}
+              onClick={disableClose ? undefined : onClose}
+              disabled={disableClose}
+              aria-disabled={disableClose ? 'true' : undefined}
               aria-label="Close dialog"
-              className="ml-4 -mr-1 -mt-1 rounded-md p-1.5 text-[var(--muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--ink)] focus:outline-hidden focus:ring-2 focus:ring-[var(--focus-ring)]"
+              className={`ml-4 -mr-1 -mt-1 rounded-md p-1.5 text-[var(--muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--ink)] focus:outline-hidden focus:ring-2 focus:ring-[var(--focus-ring)] ${
+                disableClose
+                  ? 'cursor-not-allowed opacity-40 hover:bg-transparent hover:text-[var(--muted)]'
+                  : ''
+              }`}
             >
               <svg
                 className="h-4 w-4"

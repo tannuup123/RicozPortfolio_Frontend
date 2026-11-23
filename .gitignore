@@ -33,3 +33,7 @@ tsconfig.tsbuildinfo
 graphify-out
 AGENTS.md
 .agents
+
+# Documentation exclusions
+/Doc/design/
+/Doc/phases_doc/

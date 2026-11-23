@@ -232,6 +232,12 @@ function IdeaDetailContent({ ideaId, navigate, LinkComponent }: IdeaDetailConten
             setCreatedProjectId(project.id)
             setConversionSuccessMessage(`Idea converted successfully to project "${project.name}".`)
             queryClient.invalidateQueries({ queryKey: ['ideas', ideaId] })
+            queryClient.invalidateQueries({ queryKey: ['projects'] })
+            if (project.portfolio_id) {
+                queryClient.invalidateQueries({
+                    queryKey: ['portfolio', project.portfolio_id],
+                })
+            }
             navigate(`/projects/${project.id}`)
         },
     })
