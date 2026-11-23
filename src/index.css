@@ -1,9 +1,10 @@
 @import "tailwindcss";
+@import "./tokens.css";
 
 /*
  * Phase 1 scaffold: Tailwind's base/components/utilities layers only.
- * No design tokens or theming decisions are made yet — those belong to
- * the frontend-design work done alongside actual feature pages.
+ * Design tokens are imported via tokens.css so shared UI primitives
+ * render correctly in the Vite baseline without importing full app/globals.css.
  */
 
 html,

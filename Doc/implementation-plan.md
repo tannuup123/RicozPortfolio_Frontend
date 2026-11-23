@@ -1,7 +1,7 @@
 # RicozPortfolio — Implementation Plan
 
 **Status:** Ready to execute. Built directly on `architecture.md` (how) and `mvp-requirements.md` (what) — no scope or architecture decisions are re-litigated here.
-**Frontend Migration Note (Next.js App Router):** A planned migration from the Phase 1 React+Vite SPA baseline to Next.js App Router has been approved. The backend implementation scope, DB schema, REST API contracts, and the core MVP journey are completely unchanged. Completed implementation history (Phases 1–5 frontend progress) was developed on the React+Vite baseline; the frontend transition plan and sequence are tracked in `Doc/nextjs-migration-plan.md`.
+**Frontend Migration Note (Next.js App Router):** A planned migration from the Phase 1 React+Vite SPA baseline to Next.js App Router has been approved. The backend implementation scope, DB schema, REST API contracts, and the core MVP journey are completely unchanged. Completed implementation history (Phases 1–5 frontend progress) was developed on the React+Vite baseline; the frontend transition plan and sequence are tracked in `Doc/phases_doc/project-history/nextjs-migration-plan.md`.
 **Audience:** this document is meant to be fed to an AI coding agent (e.g. Antigravity CLI) **one phase at a time**. Never paste the whole document as a single build instruction — see Section 0.
 
 ---

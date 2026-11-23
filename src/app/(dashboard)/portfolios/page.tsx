@@ -9,8 +9,9 @@
  * Composes the existing modular PortfolioListPage from src/features/portfolios/PortfolioListPage.
  */
 
+import Link from 'next/link'
 import { PortfolioListPage } from '../../../features/portfolios/PortfolioListPage'
 
 export default function PortfoliosPage() {
-  return <PortfolioListPage />
+  return <PortfolioListPage LinkComponent={Link} />
 }

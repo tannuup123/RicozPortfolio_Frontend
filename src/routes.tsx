@@ -6,7 +6,7 @@
  * module-by-module in later phases (see implementation-plan.md).
  */
 
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, useNavigate } from 'react-router-dom'
 
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { AppShell } from './components/layout/AppShell'
@@ -18,8 +18,15 @@ import { IdeasListPage } from './features/demand/IdeasListPage'
 import { PortfolioDetailPage } from './features/portfolios/PortfolioDetailPage'
 import { PortfolioListPage } from './features/portfolios/PortfolioListPage'
 import { ProjectDetailPage } from './features/projects/ProjectDetailPage'
+import { ProjectListPage } from './features/projects/ProjectListPage'
 import { GoalsPage } from './features/strategy/GoalsPage'
 import { UsersListPage } from './features/users/UsersListPage'
+
+function ProjectListRoute() {
+    const navigate = useNavigate()
+
+    return <ProjectListPage onNavigate={(path) => navigate(path)} />
+}
 
 export function AppRoutes() {
     return (
@@ -43,6 +50,7 @@ export function AppRoutes() {
                 <Route path="/ideas/:ideaId" element={<IdeaDetailPage />} />
                 <Route path="/portfolios" element={<PortfolioListPage />} />
                 <Route path="/portfolios/:portfolioId" element={<PortfolioDetailPage />} />
+                <Route path="/projects" element={<ProjectListRoute />} />
                 <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
                 <Route path="/users" element={<UsersListPage />} />
             </Route>
